@@ -1,0 +1,36 @@
+name: run_mplpc
+synopsis: run_mplpc [options] file(s)
+descr: performs a Multipulse Linear Predictive Coding analysis
+
+options:
+ -verbosity_level: specify the verbosity of operations
+ -debug_level: specify a debug level
+ -odir: override the output directory specified by the parameter file
+ -rdir: override the replace directory specified by the parameter file
+ -parameters: a parameter file
+ -help: display this help message
+
+arguments:
+ file(s): individual EDF files or lists of EDF files
+
+examples:
+
+ run_mplpc -p params.txt file1.edf file2.edf
+
+  converts file1.edf and file2.edf to mplpc excitation files based on
+  the parameters defined in parameters.txt
+
+ run_mplpc -p params.txt file1.list file2.edf file3.list
+
+  converts files found in the list file, file1.list and file3.list,
+  as well as the edf file, file2.list
+
+ run_mplpc -p params.txt f*.edf
+
+  converts files matching the wildcard spec f*.edf to excitation files
+
+see also:
+
+ the source code directory, $RUN_NFC/util/cpp/run_mplpc, contains
+ several examples of parameter files
+
