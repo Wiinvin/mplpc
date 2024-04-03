@@ -1,0 +1,1 @@
+Usage: run_mplpc [-help] -p pfile.txt [-d odir] [-r rdir] file(s).edf
