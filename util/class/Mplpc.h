@@ -1,11 +1,12 @@
+
 // make sure definitions are only made once
 //
-#ifndef RUN_MPLPC
-#define RUN_MPLPC
+#ifndef AUTOEEG_MPLPC
+#define AUTOEEG_MPLPC
 
 // local include files
 //
-#ifndef RUN_EDF
+#ifndef AUTOEEG_EDF
 #include <Edf.h>
 #endif
 
@@ -25,6 +26,10 @@ public:
   //
   static const char* CLASS_NAME;
 
+  // define the max signal value
+  //
+  static const float MAX_VALUE;
+
   // define a debug level and verbosity:
   //
   Dbgl debug_level_d;
@@ -39,57 +44,55 @@ protected:
 
   // enumerations related to parameter name parsing
   //
-  enum ALGO_MODE {ALGOMODE_SAMP = 0, ALGOMODE_FEAT,
-		  DEF_ALGO_MODE = ALGOMODE_FEAT};
-
-  enum FRAME_MODE {FRMMODE_FLOOR = 0, FRMMODE_TRUNCATE,
-		   DEF_FRAME_MODE = FRMMODE_FLOOR};
-
   enum WINDOW_TYPE {WTYP_RECT = 0, WTYP_HAMMING,
 		    DEF_WINDOW_TYPE = WTYP_RECT};
 
-  enum WINDOW_NORM {WNRM_NONE = 0, WNRM_AMPL,
+  enum WINDOW_NORM {WNRM_NONE = 0, WNRM_EGY,
 		    DEF_WINDOW_NORM = WNRM_NONE};
 
-  enum WINDOW_ALIGN {WAL_CENTER = 0, WAL_LEFT, WAL_RIGHT,
-		     DEF_WINDOW_ALIGN = WAL_CENTER};
+  enum WINDOW_ALIGN {WNAL_CENTER = 0, WNAL_LEFT, WNAL_RIGHT,
+		     DEF_WINDOW_ALIGN = WNAL_CENTER};
 
   enum DEBIAS_MODE {DBS_NONE = 0, DBS_SIGNAL, DBS_WINDOW,
 		    DEF_DEBIAS_MODE = DBS_NONE};
 
+  enum FEAT_TYPE {FEAT_EXCIT = 0, FEAT_PC, FEAT_RC,
+		  DEF_FEAT_TYPE = FEAT_EXCIT};
+  
   //###########################################################################
   //
   // protected default values
   //
   //###########################################################################
 protected:
-
-  // algorithm name-related parameters
+  // edf file processing related parameters
   //
   static const char* DEF_SELMODE_NAME;
   static const char* DEF_MATMODE_NAME;
-  static const char* DEF_TSIG_NAME;
-  static const char* DEF_ALGO_MODE_NAME;
-  static const char* DEF_FRAME_MODE_NAME;
+
+  // algorithm name-related parameters
+  //
   static const char* DEF_WINDOW_TYPE_NAME;
   static const char* DEF_WINDOW_NORM_NAME;
   static const char* DEF_WINDOW_ALIGN_NAME;
   static const char* DEF_DEBIAS_MODE_NAME;
+  static const char* DEF_FEAT_TYPE_NAME;
 
   // frame-related constants
   //
-  static double DEF_FRAME_DURATION;
-  static double DEF_WINDOW_DURATION;
-
-  // window-related parameters
-  //
-  static double DEF_WIN_HAMM_ALPHA;
+  static float DEF_SAMPLE_FREQUENCY;
+  static float DEF_FRAME_DURATION;
+  static float DEF_WINDOW_DURATION;
 
   // mplpc-related parameters
   //
+  static float DEF_PREEMPHASIS;
+  static float DEF_WIN_HAMM_ALPHA;
   static long DEF_LP_ORDER;
+  static float DEF_IMPRES_DURATION;
   static long DEF_NUM_PULSES;
 
+  
   //###########################################################################
   //
   // protected constants: constants related to externally visible
@@ -124,26 +127,16 @@ protected:
   //
   //----------------------------------------
 
-  // algorithm name-related parameters
-  //
-  static const char* ALGO_MODE_NAME_00;
-  static const char* ALGO_MODE_NAME_01;
-
-  // frame mode name-related parameters
-  //
-  static const char* FRAME_MODE_NAME_00;
-  static const char* FRAME_MODE_NAME_01;
-
   // window-related parameters
   //
-  static const char* WINDOW_NAME_00;
-  static const char* WINDOW_NAME_01;
+  static const char* WINDOW_TYPE_NAME_00;
+  static const char* WINDOW_TYPE_NAME_01;
   static const char* WINDOW_NORM_NAME_00;
   static const char* WINDOW_NORM_NAME_01;
   static const char* WINDOW_ALIGN_NAME_00;
   static const char* WINDOW_ALIGN_NAME_01;
   static const char* WINDOW_ALIGN_NAME_02;
-
+  
   // debias-related parameters
   //
   static const char* DEBIAS_MODE_NAME_00;
@@ -155,6 +148,9 @@ protected:
   // section 3: parameters related to feature file generation
   //
   //----------------------------------------
+  static const char* FEAT_TYPE_NAME_00;
+  static const char* FEAT_TYPE_NAME_01;
+  static const char* FEAT_TYPE_NAME_02;  
 
   //----------------------------------------
   //
@@ -179,6 +175,9 @@ protected:
   //
   char fname_d[Edf::MAX_LSTR_LENGTH];           // parameter file name
   char vers_d[Edf::MAX_SSTR_LENGTH];            // param file version number
+  char debug_str_d[Edf::MAX_SSTR_LENGTH]; 	// debug level as a string
+  char verbosity_str_d[Edf::MAX_SSTR_LENGTH]; 	// verbosity level as a strig
+
 
   // define channel processing parameters
   //
@@ -186,7 +185,7 @@ protected:
   char select_mode_str_d[Edf::MAX_LSTR_LENGTH];  // selection mode string
   char match_mode_str_d[Edf::MAX_SSTR_LENGTH];   // matching mode string
   char* montage_d[Edf::MAX_LSTR_LENGTH];         // montage processing
-  static const long pos_montage = 6;             // montage string in vnames
+  static const long pos_montage = 4;             // montage string in vnames // check if this is a valid way to write this. editedV
   long num_montage_d;                            // number of montage channels
 
   //----------------------------------------
@@ -195,24 +194,13 @@ protected:
   //
   //----------------------------------------
 
-  // define algorithm name-related parameters
-  //
-  char algo_mode_str_d[Edf::MAX_MSTR_LENGTH];   // algorithm mode
-
-  // define interpolation name-related parameters
-  //
-  long num_new_chan_d;
-
   // define algorithm-related parameters
   //
-  char frame_mode_str_d[Edf::MAX_MSTR_LENGTH];  // frame mode (e.g., truncate)
-  double frame_duration_d;                      // frame duration in secs
-
-  double window_duration_d;                     // window duration in secs
   char win_type_str_d[Edf::MAX_SSTR_LENGTH];    // window type
   char win_norm_str_d[Edf::MAX_SSTR_LENGTH];    // window normalization
   char win_align_str_d[Edf::MAX_SSTR_LENGTH];   // window alignment
   char debias_mode_str_d[Edf::MAX_SSTR_LENGTH]; // debias mode
+  char feat_type_str_d[Edf::MAX_SSTR_LENGTH]; // feature type
 
   //----------------------------------------
   //
@@ -252,17 +240,12 @@ protected:
 
   // define additional parameters for signal and channel selection modes
   //
-  ALGO_MODE algo_mode_d;                        // algorithm mode
   Edf::SELECT_MODE select_mode_d;               // selection mode
   Edf::MATCH_MODE match_mode_d;                 // matching mode
 
   // define parameters related to handling EDF headers
   //
   Edf edf_d;
-
-  // define additional buffers for signals and features
-  //
-  VectorDouble win_fct_d;
 
   //----------------------------------------
   //
@@ -274,11 +257,10 @@ protected:
   //
   long num_chan_file_d;                       // numbers of channels in file
   long num_chan_proc_d;                       // numbers of channels processed
-  double sample_freq_d;                       // signal sample frequency
+  float sample_freq_d;                         // signal sample frequency
 
-  // define additional frame-related parameters
-  //
-  FRAME_MODE frame_mode_d;		      // frame mode
+  float frame_duration_d;                      // frame duration in secs
+  float window_duration_d;                     // window duration in secs
 
   // define additional window-related parameters
   //
@@ -292,18 +274,40 @@ protected:
 
   // define additional parameters for mplpc
   //
+  float preemphasis_d;			      // preemphasis
   long lp_order_d;	                      // linear prediction order
+  float impres_dur_d;			      // lpc impulse response duration
   long num_pulses_d;                          // number of pulses per frame
+  FEAT_TYPE feat_type_d;                      // type of features to generate
+  
+  // editedV
+  // variables for fft plotting (for method stolen from Fe class)
+  long fft_n_d;
+  long fft_m_d;
+  double fft_q_d;
+  VectorDouble fft_wd_real_d;
+  VectorDouble fft_wd_imag_d;
+  VectorDouble fft_tempd_d;
+  VectorDouble fft_tempc_d;
+
+  // end of editedV
+  //
+  
+  //----------------------------------------
+  //
+  // section 3: variables related to output file format generation
+  //
+  //----------------------------------------
 
   //----------------------------------------
   //
-  // section 3: variables related to feature file format generation
+  // section 4: internal variables used in signal processing
   //
   //----------------------------------------
 
-  // define feature file format-related parameters
+  // define a vector for the window function
   //
-  Edf::FFMT ffmt_d;                           // feature file format
+  VectorDouble win_fct_d;
 
   //###########################################################################
   //
@@ -338,12 +342,6 @@ public:
   bool load_parameters(char* fname);
   bool print_parameters(FILE* fp = stdout);
 
-  // check montage method (mplpc_01)
-  //
-  bool load_montage(long& nchannels,
-		    char** channels,
-		    Edf::MATCH_MODE& matmode);
-
   // parameter file methods (mplpc_01)
   //
   bool set_output_directory(char* arg) {
@@ -361,8 +359,39 @@ public:
   // computational methods (mplpc_02)
   //
   bool compute(char* oname, char* iname);
-  bool compute_mplpc(VVectorDouble& osig, VVectorDouble& isig);
-  bool compute_mplpc(VectorDouble& osig, VectorDouble& isig);
+  bool compute_00(VVVectorDouble& isig, char* iname);
+
+  // might need to revise
+  //
+  bool compute_00_edf(VVVectorDouble& isig, char* iname);
+
+  bool compute_mplpc(VVVectorDouble& osig, VVectorDouble& isig);
+  bool compute_mplpc(VVectorDouble& osig, VectorDouble& isig);
+
+
+
+  //----------------------------------------
+  //
+  // section 2: helper functions for regression analysis, unit tests and debugging
+  //
+  //----------------------------------------
+
+  // editedV
+  // prints out boost arrays
+  bool helper_print_arr(VectorDouble& arr, long st_i = 0, long end_i = 0); 
+  bool helper_print_arr(VVectorDouble& arr, long st_i = 0, long end_i = 0);
+  bool helper_print_arr(VVVectorDouble& arr, long st_i = 0, long end_i = 0);
+  bool helper_load_1d_dat_tmpf(std::string fname_str_a, VectorDouble& arr_a, std::string ext_a, long ind_lim = 0);
+  bool helper_load_2d_dat_tmpf(std::string fname_str_a, VectorDouble& xarr_a, VectorDouble& yarr_a, std::string ext_a, long ind_lim = 0);
+  bool helper_convert_to_fftpow(VectorDouble& osig, VectorDouble& isig);
+  bool helper_normalize_fftpow(VectorDouble& xfft_vec, VectorDouble& yfft_vec, VectorDouble& fft_arr_a, int siglen_a, int fft_order, double samprate_a = double(1.0));
+  bool helper_init_fftpow(long fft_order_a);
+  bool helper_est_roots(VectorDouble& roots, VectorDouble& pc);
+  std::string& helper_char2str(const char* s); // gdb can't create strings from
+  // the char arr pointers interactively. Using this method strings can be passed
+  // to the methods
+
+
   
   //###########################################################################
   //
@@ -388,38 +417,18 @@ private:
 
   // signal processing functions (mplpc_03): framing, windowing, debiasing
   //
-  long compute_num_frames(long nsamp, long flen, long wlen);
-  bool create_window(long wlen);
+  short int clip_value(float value);
+  bool create_window();
   double debias(VectorDouble& sig);
-
-  // signal processing functions (mplpc_02): algorithms
-  //
-  bool compute_00_select(VVectorDouble& sig, char* iname);
-  bool compute_00_remove(VVectorDouble& sig, char* iname);
-
-  bool compute_01_frame(VVVectorDouble& feat, char* iname);
-
-  bool compute_02_frame(VVVectorDouble& feat);
-  bool compute_03_frame(VVVectorDouble& feat);
-  bool compute_04_frame(VVVectorDouble& feat, long feat_num);
-
-  // signal procssing functions (mplpc_03): initialization
-  //
-
-  // signal procssing functions (mplpc_04): computation
-  //
-  // bool convert_to_dct(VectorDouble& out, VectorDouble& in);
-
-  //----------------------------------------
-  //
-  // section 4: addtional general purpose methods (mplpc_05)
-  //
-  //----------------------------------------
-
-  // math and vector functions (mplpc_05): general
-  //
-  bool trim_zeroes(long& i1, long& i2, VectorDouble& val);
-
+  bool compute_autocor(VectorDouble& autocor, VectorDouble& sig,
+		       long lp_order);
+  bool compute_lpc(VectorDouble& rc, VectorDouble& pc,
+		   VectorDouble& autocor, long lp_order);
+  bool compute_residual(VectorDouble& osig, VectorDouble& isig,
+			VectorDouble& pc, long idx, long n_fdur);
+  bool compute_impulse_response(VectorDouble& h, VectorDouble& pc,
+				long num_samples);
+  
   //
   // end of class
 };

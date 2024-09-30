@@ -1,3 +1,6 @@
+// This file contains all methods related to parameter file parsing.
+//
+
 // local include files
 //
 #include "Mplpc.h"
@@ -67,37 +70,51 @@ bool Mplpc::load_parameters(char* fname_a) {
       return false;
     }
 
-    if (strcmp(tmp_name, vnames_d[pos_montage])== 0){
+    // set the variable
+    //
+    if(strcmp(tmp_name, vnames_d[pos_montage])== 0){
         long l = strlen(tmp_value);
-	montage_d [j] = new char[l+1];
+	montage_d [j] = new char[l + 1];
 	strcpy(montage_d[j], tmp_value);
 	montage_d[j][l] = (char) NULL;
 	j++;
     }
 
-    // set the variable
-    //
     else {
-      if (!edf_d.set_var(pos, tmp_value, (char**)vtypes_d, (void**)vptrs_d)) {
-	fprintf(stdout,
-		"**> error in Mplpc::load_parameters(): variable [%s] not set\n",
-		tmp_name);
-	return false;
-      }
+    if (!edf_d.set_var(pos, tmp_value, (char**)vtypes_d, (void**)vptrs_d)) {
+      fprintf(stdout,
+	      "**> error in Mplpc::load_parameters(): variable [%s] not set\n",
+	      tmp_name);
+      return false;
+    }
+   }
+  }
+
+  num_montage_d = j;
+
+  // set number of interpolation to zero
+  //
+  if(!edf_d.set_interp_chans(i)) {
+    if (debug_level_d >= Dbgl::LEVEL_FULL) {
+      fprintf(stdout, "Fe::load_parameters(): No new channels\n");
     }
   }
 
-  num_new_chan_d = i;
-  num_montage_d = j;
-  
-  // convert debug level and verbosity from strings to numeric values
-  //
-  if(!edf_d.set_montage_chans(num_montage_d)){
+  if(!edf_d.set_montage_chans(num_montage_d)) {
     fprintf(stdout,
-	    "**> error in Mplpc::load_parameters(): no montage channels\n");
+	    "**> error in Fe::load_parameters(): No montage channels\n");
     return false;
   }
-    
+
+  if (strcmp(montage_d[0], Edf::NULL_NAME) != 0) {
+
+    if(!edf_d.parse_aux(montage_d, (char**)NULL)) {
+       fprintf(stdout,
+	      "**>error in Fe::load_parameters(): error in parse_montage\n");
+     }
+  }
+
+
   // convert enums
   //
   if (!Mplpc::convert_to_enums()) {
@@ -127,47 +144,6 @@ bool Mplpc::load_parameters(char* fname_a) {
   //
   fclose(fp);
 
-  // exit gracefully
-  //
-  return true;
-}
-
-// method: load_montage
-//
-// arguments:
-//  long& nchannels: the number of channels (output)
-//  char** channels: the array containing all the channels specified (output)
-//  Edf::MATCH_MODE& match_mode: match mode specified by
-//                               the parameter file (output) 
-//
-// return: a boolean indicating status
-//
-// This method loads the unique montage channels specified by the
-// parameter file.
-//
-// Note also that the match_mode is loaded as well.
-//
-bool Mplpc::load_montage(long& nchannels_a,
-			 char** channels_a,
-			 Edf::MATCH_MODE& match_mode_a) {
-
-  // get the channels specified in montage :
-  //  it takes montage string, parse it, and load the channels
-  //  specified with no duplications.
-  // 
-  if (!edf_d.get_montage_channels(nchannels_a, channels_a)) {
-    fprintf(stdout, "**> load_montage: error parsing the montage string \n");
-    return false;
-  }
-
-  // return match_mode:
-  //  the match_mode is used to check the montage file and
-  //  the label of the channels. Hence, the match_mode needs to
-  //  be used once the montage will be checked regarding the
-  //  match mode selected.
-  //
-  match_mode_a = match_mode_d;
-  
   // exit gracefully
   //
   return true;
@@ -206,11 +182,14 @@ bool Mplpc::print_parameters(FILE* fp_a) {
 
   fprintf(fp_a, " parameter filename:: [%s]\n", fname_d);
 
-  // dump the feature filename stuff
+  // dump the debugging information
   //
+  strcpy(debug_str_d, debug_level_d.get_level_string());
+  strcpy(verbosity_str_d, verbosity_d.get_level_string());
   fprintf(fp_a, " debug_level = [%s] [%ld] \n",
-	  debug_level_str_d, debug_level_d);
-  fprintf(fp_a, " verbosity = [%s] [%ld]\n", verbosity_str_d, verbosity_d);
+	  debug_str_d, debug_level_d.get_level());
+  fprintf(fp_a, " verbosity = [%s] [%ld]\n", verbosity_str_d,
+	  verbosity_d.get_level());
 
   // dump the channel processing parameters
   //
@@ -226,13 +205,10 @@ bool Mplpc::print_parameters(FILE* fp_a) {
   // dump the signal processing parameters
   //
   fprintf(fp_a, "\nsection 2:\n");  
-  fprintf(fp_a, " algo_mode = [%s] [%lu]\n",
-	  algo_mode_str_d, (long)algo_mode_d);
-  fprintf(fp_a, " frame_mode = [%s] [%lu]\n",
-	  frame_mode_str_d, (long)frame_mode_d);
 
   // dump the signal processing parameters
   //
+  fprintf(fp_a, " sample_freq = %f secs\n", sample_freq_d);
   fprintf(fp_a, " frame_duration = %f secs\n", frame_duration_d);
   fprintf(fp_a, " window_duration = %f secs\n", window_duration_d);
   fprintf(fp_a, " window_type = [%s] [%lu]\n",
@@ -246,7 +222,9 @@ bool Mplpc::print_parameters(FILE* fp_a) {
 
   // dump the mplpc-related parameters
   //
+  fprintf(fp_a, " preemphasis = [%f]\n", preemphasis_d);
   fprintf(fp_a, " lp_order = [%lu]\n", lp_order_d);
+  fprintf(fp_a, " impres_dur = [%lu]\n", impres_dur_d);
   fprintf(fp_a, " num_pulses = [%lu]\n", num_pulses_d);
 
   // dump the output file generation parameters
@@ -276,76 +254,12 @@ bool Mplpc::print_parameters(FILE* fp_a) {
 //
 bool Mplpc::convert_to_enums() {
 
-  // convert the selection mode
-  //
-  if (strcmp(cselect_d, Edf::NULL_NAME) == 0) {
-    select_mode_d = Edf::DEF_SELECT_MODE;
-  }
-  else if (strcmp(select_mode_str_d, SELMODE_NAME_00) == 0) {
-    select_mode_d = Edf::SELMODE_SELECT;
-  }
-  else if (strcmp(select_mode_str_d, SELMODE_NAME_01) == 0) {
-    select_mode_d = Edf::SELMODE_REMOVE;
-  }
-   else {
-    fprintf(stdout,
-	   "**> error in Mplpc::convert_to_enums():invalid selection mode [%s]\n",
-	    select_mode_str_d);
-    return false;
-  }
-
-  // convert the match mode
-  //
-  if (strcmp(match_mode_str_d, MATMODE_NAME_00) == 0) {
-    match_mode_d = Edf::MATMODE_EXACT;
-  }
-  else if (strcmp(match_mode_str_d, MATMODE_NAME_01) == 0) {
-    match_mode_d = Edf::MATMODE_PARTIAL;
-  }
-  else {
-    fprintf(stdout,
-	    "**> error in Mplpc::convert_to_enums(): invalid match mode [%s]\n",
-	    match_mode_str_d);
-    return false;
-  }
- 
-  // convert the algorithm mode
-  //
-  if (strcmp(algo_mode_str_d, ALGO_MODE_NAME_00) == 0) {
-    algo_mode_d = ALGOMODE_SAMP;
-  }
-  else if (strcmp(algo_mode_str_d, ALGO_MODE_NAME_01) == 0) {
-    algo_mode_d = ALGOMODE_FEAT;
-  }
-  
-  else {
-    fprintf(stdout,
-	    "**> error in Mplpc::convert_to_enums():invalid algorithm mode [%s]\n"
-	    , algo_mode_str_d);
-    return false;
-  }
-
-  // convert the frame mode
-  //
-  if (strcmp(frame_mode_str_d, FRAME_MODE_NAME_00) == 0) {
-    frame_mode_d = FRMMODE_FLOOR;
-  }
-  else if (strcmp(frame_mode_str_d, FRAME_MODE_NAME_01) == 0) {
-    frame_mode_d = FRMMODE_TRUNCATE;
-  }
-  else {
-    fprintf(stdout,
-	    "**> error in Mplpc::convert_to_enums(): invalid frame mode [%s]\n",
-	    frame_mode_str_d);
-    return false;
-  }
-
   // convert the window type
   //
-  if (strcmp(win_type_str_d, WINDOW_NAME_00) == 0) {
+  if (strcmp(win_type_str_d, WINDOW_TYPE_NAME_00) == 0) {
     win_type_d = WTYP_RECT;
   }
-  else if (strcmp(win_type_str_d, WINDOW_NAME_01) == 0) {
+  else if (strcmp(win_type_str_d, WINDOW_TYPE_NAME_01) == 0) {
     win_type_d = WTYP_HAMMING;
   }
   else {
@@ -361,7 +275,7 @@ bool Mplpc::convert_to_enums() {
     win_norm_d = WNRM_NONE;
   }
   else if (strcmp(win_norm_str_d, WINDOW_NORM_NAME_01) == 0) {
-    win_norm_d = WNRM_AMPL;
+    win_norm_d = WNRM_EGY;
   }
   else {
     fprintf(stdout,
@@ -373,13 +287,13 @@ bool Mplpc::convert_to_enums() {
   // convert the window alignment
   //
   if (strcmp(win_align_str_d, WINDOW_ALIGN_NAME_00) == 0) {
-    win_align_d = WAL_CENTER;
+    win_align_d = WNAL_CENTER;
   }
   else if (strcmp(win_align_str_d, WINDOW_ALIGN_NAME_01) == 0) {
-    win_align_d = WAL_LEFT;
+    win_align_d = WNAL_LEFT;
   }
   else if (strcmp(win_align_str_d, WINDOW_ALIGN_NAME_02) == 0) {
-    win_align_d = WAL_RIGHT;
+    win_align_d = WNAL_RIGHT;
   }
   else {
     fprintf(stdout,

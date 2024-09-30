@@ -1,3 +1,5 @@
+// This file contains basic methods such as constructors and destructors.
+
 // local include files
 //
 #include "Mplpc.h"
@@ -41,7 +43,6 @@ Mplpc::Mplpc() {
   // section 1: filename processing
   //
   vptrs_d[i++] = (void*)&(vers_d);
-
   vptrs_d[i++] = (void*)&(cselect_d);
   vptrs_d[i++] = (void*)&(select_mode_str_d);
   vptrs_d[i++] = (void*)&(match_mode_str_d);
@@ -49,8 +50,7 @@ Mplpc::Mplpc() {
 
   // section 2: signal processing
   //
-  vptrs_d[i++] = (void*)&(algo_mode_str_d);
-  vptrs_d[i++] = (void*)&(frame_mode_str_d);
+  vptrs_d[i++] = (void*)&(sample_freq_d);
   vptrs_d[i++] = (void*)&(frame_duration_d);
   vptrs_d[i++] = (void*)&(window_duration_d);
   vptrs_d[i++] = (void*)&(win_type_str_d);
@@ -58,8 +58,13 @@ Mplpc::Mplpc() {
   vptrs_d[i++] = (void*)&(win_align_str_d);
   vptrs_d[i++] = (void*)&(debias_mode_str_d);
 
+  vptrs_d[i++] = (void*)&(preemphasis_d);
   vptrs_d[i++] = (void*)&(lp_order_d);
+  vptrs_d[i++] = (void*)&(impres_dur_d);
   vptrs_d[i++] = (void*)&(num_pulses_d);
+  vptrs_d[i++] = (void*)&(feat_type_d);
+
+  //vptrs_d[i++] = (void*)&(algo_mode_str_d);
 
   // section 3: feature file generation
   //
@@ -87,8 +92,7 @@ Mplpc::Mplpc() {
 
   // section 2: signal processing
   //
-  strcpy(algo_mode_str_d, DEF_ALGO_MODE_NAME);
-  strcpy(frame_mode_str_d, DEF_FRAME_MODE_NAME);
+  sample_freq_d = DEF_SAMPLE_FREQUENCY;
   frame_duration_d = DEF_FRAME_DURATION;
   window_duration_d = DEF_WINDOW_DURATION;
   strcpy(win_type_str_d, DEF_WINDOW_TYPE_NAME);
@@ -97,9 +101,11 @@ Mplpc::Mplpc() {
 
   strcpy(debias_mode_str_d, DEF_DEBIAS_MODE_NAME);
 
+  preemphasis_d = DEF_PREEMPHASIS;
   lp_order_d = DEF_LP_ORDER;
   num_pulses_d = DEF_NUM_PULSES;
-
+  feat_type_d = DEF_FEAT_TYPE;
+  
   // section 3: feature file generation
   //
   ffmt_str_d[0] = (char)NULL;
@@ -163,6 +169,7 @@ Mplpc::~Mplpc() {
 // constants: class name and version
 //
 const char* Mplpc::CLASS_NAME("Mplpc");
+const float Mplpc::MAX_VALUE = (float)32767.0;
 const char* Mplpc::VERSION("1.0");
 
 // constants: variable names appearing in the parameter file:
@@ -181,18 +188,20 @@ const char* Mplpc::vnames_d[Mplpc::MAX_NVN] = {
 
   // section 2: signal processing
   //
-  "algorithm_mode",
-  "frame_mode",
+  "sample_frequency",
   "frame_duration",
   "window_duration",
-  "window_name",
+  "window_type",
   "window_norm",
   "window_alignment",
   "debias_mode",
 
+  "preemphasis",
   "lp_order",
+  "impulse_response_duration",
   "num_pulses",
-
+  "feat_type",
+  
   // section 3: output file generation
   //
   "output_format",
@@ -217,18 +226,20 @@ const char* Mplpc::vtypes_d[Mplpc::MAX_NVN] = {
 
   // section 2: signal processing
   //
-  "string",		// algorithm name: algo_name_d
-  "string",		// frame mode: frame_mode_d
-  "double",		// frame duration: frame_duration_d
-  "double",		// window duration: window_duration_d
-  "string",		// window type: windtype_d
-  "string",		// window norm: windnorm_d
-  "string",		// window norm: windalign_d
+  "float",		// sample frequency: sample_freq_d
+  "float",		// frame duration: frame_duration_d
+  "float",		// window duration: window_duration_d
+  "string",		// window type: win_type_d
+  "string",		// window norm: win_norm_d
+  "string",		// window norm: win_align_d
   "string",		// debais mode: debias_mode_d
 
+  "float",		// premphasis: preemphasis_d
   "long",		// lp order: lp_order_d
+  "float",		// impulse response duration: impres_dur_d
   "long",		// num_pulses: num_pulses_d
-
+  "string",             // feat_type: excitation, pc, rc
+  
   // section 5: feature file generation
   //
   "string",		// output format: offmt_d
@@ -249,17 +260,15 @@ const char* Mplpc::vtypes_d[Mplpc::MAX_NVN] = {
 
 const char* Mplpc::DEF_SELMODE_NAME(Mplpc::SELMODE_NAME_00);
 const char* Mplpc::DEF_MATMODE_NAME(Mplpc::MATMODE_NAME_00);
-const char* Mplpc::DEF_TSIG_NAME("");
-const char* Mplpc::DEF_ALGO_MODE_NAME(Mplpc::ALGO_MODE_NAME_00);
-const char* Mplpc::DEF_FRAME_MODE_NAME(Mplpc::FRAME_MODE_NAME_00);
 const char* Mplpc::DEF_DEBIAS_MODE_NAME(Mplpc::DEBIAS_MODE_NAME_00);
-const char* Mplpc::DEF_WINDOW_TYPE_NAME(Mplpc::WINDOW_NAME_00);
+const char* Mplpc::DEF_FEAT_TYPE_NAME(Mplpc::FEAT_TYPE_NAME_00);
+const char* Mplpc::DEF_WINDOW_TYPE_NAME(Mplpc::WINDOW_TYPE_NAME_00);
 const char* Mplpc::DEF_WINDOW_NORM_NAME(Mplpc::WINDOW_NORM_NAME_00);
 const char* Mplpc::DEF_WINDOW_ALIGN_NAME(Mplpc::WINDOW_ALIGN_NAME_00);
 
 //-----------------------------------------------------------------------------
 //
-// constants: define the actual choices users have for algo names
+// constants: define the default values for key parameters
 //
 //-----------------------------------------------------------------------------
 
@@ -273,20 +282,16 @@ const char* Mplpc::SELMODE_NAME_01("remove");
 const char* Mplpc::MATMODE_NAME_00("exact");
 const char* Mplpc::MATMODE_NAME_01("partial");
 
-// constants: algorithm names
+// frame-related constants
 //
-const char* Mplpc::ALGO_MODE_NAME_00("sampled_data");
-const char* Mplpc::ALGO_MODE_NAME_01("features");
-
-// constants: frame modes
-//
-const char* Mplpc::FRAME_MODE_NAME_00("floor");
-const char* Mplpc::FRAME_MODE_NAME_01("truncate");
+float Mplpc::DEF_SAMPLE_FREQUENCY = 8000.0;
+float Mplpc::DEF_FRAME_DURATION = 1.0;
+float Mplpc::DEF_WINDOW_DURATION = 2.0;
 
 // constants: window modes
 //
-const char* Mplpc::WINDOW_NAME_00("rectangular");
-const char* Mplpc::WINDOW_NAME_01("hamming");
+const char* Mplpc::WINDOW_TYPE_NAME_00("rectangular");
+const char* Mplpc::WINDOW_TYPE_NAME_01("hamming");
 const char* Mplpc::WINDOW_NORM_NAME_00("none");
 const char* Mplpc::WINDOW_NORM_NAME_01("energy");
 const char* Mplpc::WINDOW_ALIGN_NAME_00("center");
@@ -299,18 +304,18 @@ const char* Mplpc::DEBIAS_MODE_NAME_00("none");
 const char* Mplpc::DEBIAS_MODE_NAME_01("signal");
 const char* Mplpc::DEBIAS_MODE_NAME_02("window"); 
 
-// frame-related constants
+// constants: feature types
 //
-double Mplpc::DEF_FRAME_DURATION = 1.0;
-double Mplpc::DEF_WINDOW_DURATION = 2.0;
-
-// window-related parameters
-//
-double Mplpc::DEF_WIN_HAMM_ALPHA = 0.54;
+const char* Mplpc::FEAT_TYPE_NAME_00("mplpc");
+const char* Mplpc::FEAT_TYPE_NAME_01("pc");
+const char* Mplpc::FEAT_TYPE_NAME_02("rc");
 
 // mplpc-related parameters
 //
+float Mplpc::DEF_PREEMPHASIS = 0.95;
+float Mplpc::DEF_WIN_HAMM_ALPHA = 0.54;
 long Mplpc::DEF_LP_ORDER = 16;
+float Mplpc::DEF_IMPRES_DURATION = 0.01;
 long Mplpc::DEF_NUM_PULSES = 2;
 
 //
