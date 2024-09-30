@@ -1,6 +1,6 @@
 # define the object files (this must go first)
 #
-OBJ = mplpc_00.o mplpc_01.o mplpc_02.o mplpc_03.o
+OBJ = mplpc_00.o mplpc_01.o mplpc_02.o mplpc_03.o mplpc_04.o
 #mplpc_03.o mplpc_04.o
 #mplpc_05.o mplpc_06.o mplpc_07.o
 
